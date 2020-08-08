@@ -1,0 +1,4 @@
+pings.db
+venv/
+.idea/
+sqlite3.exe
