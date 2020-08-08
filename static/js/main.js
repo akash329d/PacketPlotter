@@ -7,17 +7,25 @@ function buildPLChart(elementName, color, pingTimestamp, packetLoss) {
             datasets: [{
                 borderColor: color,
                 fill: false,
-                label: "Ping Time",
+                label: "Ping Packet Loss",
                 data: packetLoss,
             }]
         },
         options: {
+            tooltips: {
+                displayColors: false,
+                callbacks: {
+                    label: function (TooltipItem, object){
+                        return TooltipItem['value'] + '% (Rolling Average)'
+                    }
+                }
+            },
             legend: {
                 display: false
             },
             scales: {
                 xAxes: [{
-                    display: false,
+                    display: true,
                     gridLines: {
                         display: false
                     }
@@ -44,12 +52,20 @@ function buildRSTChart(elementName, color, pingTimestamp, RST) {
         data: {
             labels: pingTimestamp,
             datasets: [{
-                label: "Ping Response Time",
+                label: "Response Time",
                 data: RST,
                 backgroundColor: color
             }]
         },
         options: {
+            tooltips: {
+                displayColors: false,
+                callbacks: {
+                    label: function (TooltipItem, object){
+                        return TooltipItem['value'] + 'ms'
+                    }
+                }
+            },
             legend: {
                 display: false
             },
@@ -85,15 +101,15 @@ $( document ).ready(function() {
         $('#minuteRSTAVG').text(data['min_RST_AVG'] + 'ms')
         $('#hourRSTAVG').text(data['hour_RST_AVG'] + 'ms')
         $('#threeHourRSTAVG').text(data['threeHour_RST_AVG'] + 'ms')
-        buildRSTChart('minuteRST', '#fcba03', data['minuteTimestamp'], data['minuteRTC'])
+        buildRSTChart('minuteRST', '#4caf50', data['minuteTimestamp'], data['minuteRTC'])
         buildRSTChart('hourRST', '#fcba03', data['hourTimestamp'], data['hourRTC'])
-        buildRSTChart('threeHourRST', '#fcba03', data['threeHourTimestamp'], data['threeHourRTC'])
-        $('#minPLAVG').text(data['minutePL'][data['minutePL'].length - 1] + '%')
-        $('#hourPLAVG').text(data['hourPL'][data['hourPL'].length - 1] + '%')
-        $('#threeHourPLAVG').text(data['threeHourPL'][data['threeHourPL'].length - 1] + '%')
-        buildPLChart('minutePL', '#fcba03', data['minuteTimestamp'], data['minutePL'])
+        buildRSTChart('threeHourRST', '#00bcd4', data['threeHourTimestamp'], data['threeHourRTC'])
+        $('#minPLAVG').text(data['min_PL_AVG'] + '%')
+        $('#hourPLAVG').text(data['hour_PL_AVG'] + '%')
+        $('#threeHourPLAVG').text(data['threeHour_PL_AVG'] + '%')
+        buildPLChart('minutePL', '#4caf50', data['minuteTimestamp'], data['minutePL'])
         buildPLChart('hourPL', '#fcba03', data['hourTimestamp'], data['hourPL'])
-        buildPLChart('threeHourPL', '#fcba03', data['threeHourTimestamp'], data['threeHourPL'])
+        buildPLChart('threeHourPL', '#00bcd4', data['threeHourTimestamp'], data['threeHourPL'])
     }
     })
 });

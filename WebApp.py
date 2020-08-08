@@ -3,47 +3,12 @@ import threading
 import time
 from apscheduler.schedulers.blocking import BlockingScheduler
 import pingparsing
+from datetime import datetime
 import sqlite3
 import gzip
 import numpy as np
 
-# TODO: Code Cleanup, Offset Charts (Based On Data Collected), Figure out better averaging (right now the data doesn't shift correct when not collecting, will need to figure out better visualization for that), also AJAX for sending table data, instead of HTML Template.
-# TODO: ADD PACKET LOSS PERCENTAGES
-
-
 app = Flask(__name__, template_folder="static")
-
-
-def distance(a, b):
-    return np.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
-
-
-def distancePointLine(linea, lineb, a):
-    if linea == lineb:
-        return distance(a, linea)
-    x_diff = linea[0] - lineb[0]
-    y_diff = linea[1] - lineb[1]
-    num = abs(y_diff*a[0] - x_diff * a[1] + linea[0] * lineb[1] - linea[1] * lineb[0])
-    den = np.sqrt(y_diff ** 2 + x_diff ** 2)
-    return num / den
-
-
-def douglasPeucker(xpoints, ypoints, epsilon):
-    maxDistance, index = 0.0, 0
-    for x in range(1, len(xpoints) - 1):
-        d = distancePointLine([xpoints[0], ypoints[0]], [xpoints[-1], ypoints[-1]], [xpoints[x], ypoints[x]])
-        if d > maxDistance:
-            index = x
-            maxDistance = d
-    if maxDistance > epsilon:
-        leftResultsX, leftResultsY = douglasPeucker(xpoints[:index], ypoints[:index], epsilon)
-        rightResultsX, rightResultsY = douglasPeucker(xpoints[index:], ypoints[index:], epsilon)
-        resultsx, resultsy = leftResultsX + rightResultsX, leftResultsY + rightResultsY
-    else:
-        resultsx = [xpoints[0], xpoints[-1]]
-        resultsy = [ypoints[0], ypoints[-1]]
-
-    return resultsx, resultsy
 
 
 def doPing():
@@ -73,35 +38,60 @@ def nonZeroMean(arr):
     total = 0
     count = 0
     for x in arr:
-        if x != 0:
+        if x is not None and x != 0:
             total, count = total + x, count + 1
     return total / count
 
 
-def calculateArray(data, timeLimit, decimation):
+def averageArray(array, sliceSize, threshold):
+    if sliceSize == 1:
+        return array
+
+    def averageHelper(i):
+        total, count, noneCount = 0, 0, 0
+        for x in array[i: i + sliceSize]:
+            if x is not None:
+                total += x
+                count += 1
+            else:
+                noneCount += 1
+        if noneCount / sliceSize > .5:
+            return None
+        if total == 0 or count == 0:
+            total, count = 0, 1
+        toReturn = round(total / count, 2)
+        return 0 if toReturn < threshold else toReturn
+
+    return [averageHelper(i) for i in range(0, len(array), sliceSize)]
+
+
+def calculateArray(data, timeLimit, sliceSize, thresholdRTC):
     timeArr, RTCArr, PLArr = [], [], []
     totalPackets, packetsReceived = 0, 0
     startingIndex = np.searchsorted(list(zip(*data))[0], timeLimit, side='right')
     secondsToPad = int(data[startingIndex][0] - timeLimit)
-
+    indexTracker = []
     for ping in data[startingIndex:]:
         totalPackets += 1
         packetsReceived += ping[2]
         RTCArr.append(ping[3])
-        timeArr.append(round(ping[0] - timeLimit))
+        indexTracker.append(round(ping[0] - timeLimit))
+        timeArr.append(ping[0])
         PLArr.append(round((totalPackets - packetsReceived) * 100 / totalPackets, 2))
 
-    missing_indices = sorted(set(range(round(data[startingIndex][0] - timeLimit), round(data[-1][0] - timeLimit + 1)))
-                             .difference(timeArr))
-    for missingIndex in missing_indices:
-        timeArr.insert(missingIndex - 1, missingIndex)
-        RTCArr.insert(missingIndex - 1, 0)
-        PLArr.insert(missingIndex - 1, 0.0)
+    missingIndices = sorted(set(range(round(data[startingIndex][0] - timeLimit), round(data[-1][0] - timeLimit + 1)))
+                            .difference(indexTracker))
+    for missingIndex in missingIndices:
+        timeArr.insert(missingIndex - 1 - indexTracker[0], missingIndex + timeLimit)
+        RTCArr.insert(missingIndex - 1 - indexTracker[0], 0)
+        PLArr.insert(missingIndex - 1 - indexTracker[0], None)
 
-    timeArr = (list(range(1, secondsToPad + 1)) + timeArr)[::decimation]
-    RTCArr = ([0] * secondsToPad + RTCArr)[::decimation]
-    PLArr = ([0.0] * secondsToPad + PLArr)[::decimation]
-    return timeArr, RTCArr, PLArr
+    PLAvg = PLArr[-1]
+    timeArr = averageArray(timeArr + [x + data[-1][0] for x in range(1, secondsToPad + 1)], sliceSize, 0)
+    RTCArr = averageArray((RTCArr + [0] * secondsToPad), sliceSize, thresholdRTC)
+    PLArr = averageArray((PLArr + [0] * secondsToPad), sliceSize, 0)
+    timeArr = [datetime.fromtimestamp(t).strftime('%I:%M:%S%p') for t in timeArr]
+    return timeArr, RTCArr, PLArr, PLAvg
 
 
 @app.route("/latest.json")
@@ -114,14 +104,15 @@ def dataResponse():
     cursor.execute("""SELECT * from pings WHERE timestamp > ? ORDER BY timestamp ASC""", (last3Hour,))
     data = cursor.fetchall()
     cursor.close()
-    threeHourTimestamp, threeHourRTC, threeHourPL = calculateArray(data, last3Hour, 1)
-    hourPingTimestamp, hourRTC, hourPL = calculateArray(data, lastHour, 1)
-    print(threeHourRTC)
-    print(hourRTC)
-    minPingTimestamp, minRTC, minPL = calculateArray(data, lastMinute, 1)
+    threeHourTimestamp, threeHourRTC, threeHourPL, threeHourPLAvg = calculateArray(data, last3Hour, 60, 3.5)
+    hourPingTimestamp, hourRTC, hourPL, hourPLAvg = calculateArray(data, lastHour, 60, 3.5)
+    minPingTimestamp, minRTC, minPL, minPLAvg = calculateArray(data, lastMinute, 1, 3.5)
     toReturn = {"min_RST_AVG": round(nonZeroMean(minRTC), 2),
                 "threeHour_RST_AVG": round(nonZeroMean(threeHourRTC), 2),
                 "hour_RST_AVG": round(nonZeroMean(hourRTC), 2),
+                "min_PL_AVG": minPLAvg,
+                "threeHour_PL_AVG": threeHourPLAvg,
+                "hour_PL_AVG": hourPLAvg,
                 "threeHourRTC": threeHourRTC,
                 "threeHourPL": threeHourPL,
                 "threeHourTimestamp": threeHourTimestamp,
