@@ -1,6 +1,7 @@
 import sqlite3
 import time
 from datetime import datetime
+from pathlib import Path
 from flask import Blueprint, Flask
 import pingparsing
 import numpy as np
@@ -68,8 +69,13 @@ def timerPing(app: Flask):
     """Does a ping, and stores the results in a SQL table. Additionally, deletes records in SQL table that are older
     than 4 hours."""
     pingData = doPing(app.config['PING_DESTINATION'])
-    db = sqlite3.connect("pings.db")
+    db = sqlite3.connect("db/pings.db")
     con = db.cursor()
+    con.execute("""CREATE TABLE IF NOT EXISTS pings (
+        timestamp REAL PRIMARY KEY,
+        destination TEXT NOT NULL,
+        packet_received INTEGER NOT NULL,
+        RTT INTEGER NOT NULL)""")
     con.execute("""INSERT INTO pings VALUES (?, ?, ?, ?)"""
                 , (pingData["timestamp"], pingData["destination"], pingData["packet_receive"], pingData["rtt_avg"]))
     con.execute("""DELETE FROM pings WHERE timestamp < ?""", (time.time() - 60 * 60 * 4,))
@@ -79,7 +85,7 @@ def timerPing(app: Flask):
 
 def createTable():
     """Creates SQL Table if it doesn't exist"""
-    db = sqlite3.connect("pings.db")
+    db = sqlite3.connect("db/pings.db")
     con = db.cursor()
     con.execute("""CREATE TABLE IF NOT EXISTS pings (
     timestamp REAL PRIMARY KEY,
@@ -92,6 +98,7 @@ def createTable():
 
 @dataCollection.record
 def beginDataCollection(state):
+    Path("db/").mkdir(exist_ok=True)
     createTable()
     sched = BackgroundScheduler(daemon=True)
     sched.add_job(timerPing, 'cron', second='*', args=[state.app])

@@ -20,7 +20,7 @@ def dataResponse():
     lastThreeHour = time.time() - 3 * 60 * 60
     lastHour = lastThreeHour + 2 * 60 * 60
     lastMinute = lastHour + 59 * 60
-    db = sqlite3.connect("pings.db")
+    db = sqlite3.connect("db/pings.db")
     cursor = db.cursor()
     cursor.execute("""SELECT * from pings WHERE timestamp > ? ORDER BY timestamp ASC""", (lastThreeHour,))
     data = cursor.fetchall()
