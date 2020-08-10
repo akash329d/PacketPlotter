@@ -3,14 +3,13 @@ import json
 import sqlite3
 import time
 
-from flask import Blueprint, render_template, make_response
+from flask import Blueprint, render_template, make_response, current_app
 from .dataCollection import calculateArray
 
 from pingplotter import cache
 from pingplotter.utils import *
 
 routes = Blueprint('routes', __name__)
-
 
 
 @routes.route("/latest.json")
@@ -52,4 +51,4 @@ def dataResponse():
 
 @routes.route("/")
 def dashboard():
-    return render_template('chart.html')
+    return render_template('chart.html', PING_DESTINATION=current_app.config['PING_DESTINATION'])
