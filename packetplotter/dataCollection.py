@@ -10,27 +10,27 @@ import pingparsing
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Blueprint, Flask
 
-from pingplotter.utils import averageArray
+from packetplotter.utils import averageArray
 
 dataCollection = Blueprint('dataCollection', __name__)
 sched = BackgroundScheduler(daemon=True)
 
-def calculateArray(data, timeLimit, sliceSize, thresholdRTC, missingDataThreshold):
-    """Calculates the Timestamp Array, Response Time (RTC) Array,, Packet Loss (PL) Array and PL Average from
+def calculateArray(data, timeLimit, sliceSize, thresholdRTT, missingDataThreshold):
+    """Calculates the Timestamp Array, Response Time (RTT) Array,, Packet Loss (PL) Array and PL Average from
     an array of ping's. Only uses pings that are more recent than a specific timeLimit (unix timestamp). sliceSize
-    determines how many samples should be generated. The thresholdRTC value determines when a RTC should be considered
+    determines how many samples should be generated. The thresholdRTT value determines when a RTT should be considered
     0 for a specific sample. missingDataThreshold determines the percentage of missing data required
     for a value to be returned as None for averaging. Additionally, if not enough data exists,
     pads the return samples with None values for graphing.
     Finally, gaps in the data are filled in with None values as well."""
-    timeSet, timeArr, RTCArr, PLArr = set(), [], [], []
+    timeSet, timeArr, RTTArr, PLArr = set(), [], [], []
     totalPackets, packetsReceived = 0, 0
     startingIndex = np.searchsorted(list(zip(*data))[0], timeLimit, side='right')
     secondsToPad = int(data[startingIndex][0] - timeLimit)
     for ping in data[startingIndex:]:
         totalPackets += 1
         packetsReceived += ping[2]
-        RTCArr.append(ping[3])
+        RTTArr.append(ping[3])
         timeSet.add(round(ping[0]))
         PLArr.append(round((totalPackets - packetsReceived) * 100 / totalPackets, 2))
 
@@ -38,16 +38,16 @@ def calculateArray(data, timeLimit, sliceSize, thresholdRTC, missingDataThreshol
     for index in range(startingTime, int(data[-1][0]) + 1):
         timeArr.append(index)
         if index not in timeSet:
-            RTCArr.insert(index - startingTime, None)
+            RTTArr.insert(index - startingTime, None)
             PLArr.insert(index - startingTime, None)
 
     PLAvg = PLArr[-1]
     timeArr = averageArray(
         list(range(int(data[startingIndex][0] - secondsToPad), int(data[startingIndex][0]))) + timeArr, sliceSize, 1, 1)
-    RTCArr = averageArray(([None] * secondsToPad + RTCArr), sliceSize, thresholdRTC, missingDataThreshold)
+    RTTArr = averageArray(([None] * secondsToPad + RTTArr), sliceSize, thresholdRTT, missingDataThreshold)
     PLArr = averageArray(([None] * secondsToPad + PLArr), sliceSize, 1, missingDataThreshold)
     timeArr = [datetime.fromtimestamp(t).strftime('%I:%M:%S%p') for t in timeArr]
-    return timeArr, RTCArr, PLArr, PLAvg
+    return timeArr, RTTArr, PLArr, PLAvg
 
 
 def doPing(ping_dest, ping_size, ping_timeout, debug):

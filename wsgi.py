@@ -1,6 +1,6 @@
-from pingplotter import pingplotter
+from packetplotter import packetplotter
 
-app = pingplotter()
+app = packetplotter()
 
 if __name__ == '__main__':
     app.run(use_reloader=False)

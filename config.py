@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import distutils.util
 
-load_dotenv(dotenv_path='pingconfig.ini')
+load_dotenv(dotenv_path='config.ini')
 
 class Config:
     PING_DESTINATION = os.getenv('PING_DESTINATION', '8.8.8.8')

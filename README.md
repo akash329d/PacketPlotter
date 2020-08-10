@@ -1,10 +1,10 @@
-# PingPlotter
-Generates charts for the response time and packet loss over past minute, hour and three hours. Useful for tracking packet loss, and diagnosing network issues. Uses Python to gather ping data and parse data. SQLite is used to store ping data. Frontend uses ChartJS for graph creation. Flask/uWSGI for web server. Does 1 ping/sec.
+# PacketPlotter
+Generates charts for the Round Trip Time (RTT) and loss for packets over past minute, hour and three hours. Useful for tracking packet loss, and diagnosing network issues. Uses Python to gather ping data and parse data. SQLite is used to store ping data. Frontend uses ChartJS for graph creation. Flask/uWSGI for web server. Does 1 ping/sec.
 
 Webpage:
-![Screenshot](https://github.com/akash329d/PingPlotter/blob/screenshots/screenshot.png?raw=true)
+![Screenshot](https://github.com/akash329d/PacketPlotter/blob/screenshots/screenshot.png?raw=true)
 
-Can be configured from the pingconfig.ini file (or through environmental variables) 
+Can be configured from the config.ini file (or through environmental variables) 
 
 Run With uWSGI (need to install uWSGI via PIP or other means):
 ```shell
@@ -14,23 +14,23 @@ Or just run directly via Python and use Flask's built in Development Server:
 ```shell
 python uwsgi.py
 ```
-Both options will use config from pingconfig.ini
+Both options will use config from config.ini (prioritizes environmental variables)
 ## Docker Usage
 
-Dockerhub: https://hub.docker.com/r/akash329d/pingplotter  
+Dockerhub: https://hub.docker.com/r/akash329d/PacketPlotter
 Base Image: https://github.com/tiangolo/uwsgi-nginx-flask-docker  
 (Uses Nginx/uWSGI)
 
 ### Example Docker Image Creation
 ```
 docker create \
-  --name=PingPlotter \
+  --name=PacketPlotter \
   -e PING_DESTINATION=8.8.8.8 \
   -e PING_SIZE=32 \
   -e PING_TIMEOUT = 200 \
   -p 80:80 \
   -v /path/to/store/db:/app/db \
-  akash329d/pingplotter
+  akash329d/packetplotter
 ```
 
 ### Docker Parameters

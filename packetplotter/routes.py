@@ -6,8 +6,8 @@ import time
 from flask import Blueprint, render_template, make_response, current_app
 from .dataCollection import calculateArray
 
-from pingplotter import cache
-from pingplotter.utils import *
+from packetplotter import cache
+from packetplotter.utils import *
 
 routes = Blueprint('routes', __name__)
 
@@ -24,22 +24,22 @@ def dataResponse():
     cursor.execute("""SELECT * from pings WHERE timestamp > ? ORDER BY timestamp ASC""", (lastThreeHour,))
     data = cursor.fetchall()
     cursor.close()
-    threeHourTimestamp, threeHourRTC, threeHourPL, threeHourPLAvg = calculateArray(data, lastThreeHour, 60, .5, .5)
-    hourPingTimestamp, hourRTC, hourPL, hourPLAvg = calculateArray(data, lastHour, 60, .5, .5)
-    minPingTimestamp, minRTC, minPL, minPLAvg = calculateArray(data, lastMinute, 1, .5, .5)
-    toReturn = {"min_RST_AVG": round(nonZeroMean(minRTC), 2),
-                "threeHour_RST_AVG": round(nonZeroMean(threeHourRTC), 2),
-                "hour_RST_AVG": round(nonZeroMean(hourRTC), 2),
+    threeHourTimestamp, threeHourRTT, threeHourPL, threeHourPLAvg = calculateArray(data, lastThreeHour, 60, .5, .5)
+    hourPingTimestamp, hourRTT, hourPL, hourPLAvg = calculateArray(data, lastHour, 60, .5, .5)
+    minPingTimestamp, minRTT, minPL, minPLAvg = calculateArray(data, lastMinute, 1, .5, .5)
+    toReturn = {"min_RST_AVG": round(nonZeroMean(minRTT), 2),
+                "threeHour_RST_AVG": round(nonZeroMean(threeHourRTT), 2),
+                "hour_RST_AVG": round(nonZeroMean(hourRTT), 2),
                 "min_PL_AVG": minPLAvg,
                 "threeHour_PL_AVG": threeHourPLAvg,
                 "hour_PL_AVG": hourPLAvg,
-                "threeHourRTC": threeHourRTC,
+                "threeHourRTT": threeHourRTT,
                 "threeHourPL": threeHourPL,
                 "threeHourTimestamp": threeHourTimestamp,
-                "hourRTC": hourRTC,
+                "hourRTT": hourRTT,
                 "hourPL": hourPL,
                 "hourTimestamp": hourPingTimestamp,
-                "minuteRTC": minRTC,
+                "minuteRTT": minRTT,
                 "minutePL": minPL,
                 "minuteTimestamp": minPingTimestamp}
     compressedReturn = gzip.compress(json.dumps(toReturn).encode('utf8'))

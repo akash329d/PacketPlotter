@@ -6,7 +6,7 @@ import logging
 import sys
 
 
-def pingplotter():
+def packetplotter():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     cache.init_app(app)
