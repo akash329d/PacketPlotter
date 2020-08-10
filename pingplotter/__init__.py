@@ -12,7 +12,7 @@ def pingplotter():
     cache.init_app(app)
 
     with app.app_context():
-        logging.basicConfig(stream=sys.stderr, level=logging.DEBUG if app.config['DEBUG'] else logging.ERROR)
+        logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if app.config['DEBUG'] else logging.ERROR)
         app.register_blueprint(routes)
         app.register_blueprint(dataCollection)
         return app

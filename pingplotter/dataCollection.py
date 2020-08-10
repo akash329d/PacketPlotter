@@ -13,7 +13,7 @@ from flask import Blueprint, Flask
 from pingplotter.utils import averageArray
 
 dataCollection = Blueprint('dataCollection', __name__)
-
+sched = BackgroundScheduler(daemon=True)
 
 def calculateArray(data, timeLimit, sliceSize, thresholdRTC, missingDataThreshold):
     """Calculates the Timestamp Array, Response Time (RTC) Array,, Packet Loss (PL) Array and PL Average from
@@ -52,6 +52,9 @@ def calculateArray(data, timeLimit, sliceSize, thresholdRTC, missingDataThreshol
 
 def doPing(ping_dest, ping_size, ping_timeout, debug):
     """Pings a specific IP address once, and returns the results as a dictionary."""
+    if int(ping_size) > 65500:
+        sched.shutdown(wait=False)
+        raise ValueError("Ping Size too large")
     ping_parser = pingparsing.PingParsing()
     transmitter = pingparsing.PingTransmitter()
     transmitter.destination = ping_dest
@@ -60,9 +63,9 @@ def doPing(ping_dest, ping_size, ping_timeout, debug):
     transmitter.timeout = str(ping_timeout) + 'ms'
     result = transmitter.ping()
     toReturn = ping_parser.parse(result).as_dict()
-    if debug:
-        logging.debug(toReturn)
+    logging.debug(toReturn)
     if toReturn["destination"] is None:
+        sched.shutdown(wait=False)
         raise ValueError("Could not resolve host " + ping_dest)
 
     toReturn["timestamp"] = time.time()
@@ -71,9 +74,10 @@ def doPing(ping_dest, ping_size, ping_timeout, debug):
 
 
 def recordPing(app: Flask):
+
     """Does a ping, and stores the results in a SQL table. Additionally, deletes records in SQL table that are older
     than 4 hours."""
-    pingData = doPing(app.config['PING_DESTINATION'], app.config['PING_SIZE'], app.config['PING_TIMEOUT'],
+    pingData = doPing(app.config['PING_DESTINATION'], int(app.config['PING_SIZE']), app.config['PING_TIMEOUT'],
                       app.config['DEBUG'])
     db = sqlite3.connect("db/pings.db")
     con = db.cursor()
@@ -106,7 +110,5 @@ def createTable():
 def beginDataCollection(state):
     Path("db/").mkdir(exist_ok=True)
     createTable()
-    if not state.app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-        sched = BackgroundScheduler(daemon=True)
-        sched.add_job(recordPing, 'cron', second='*', args=[state.app])
-        sched.start()
+    sched.add_job(recordPing, 'cron', second='*', args=[state.app])
+    sched.start()
