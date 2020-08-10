@@ -1,13 +1,15 @@
+import logging
 import sqlite3
 import time
 from datetime import datetime
 from pathlib import Path
-from flask import Blueprint, Flask
-import pingparsing
-import numpy as np
-import sys
 
+import os
+import numpy as np
+import pingparsing
 from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Blueprint, Flask
+
 from pingplotter.utils import averageArray
 
 dataCollection = Blueprint('dataCollection', __name__)
@@ -48,15 +50,18 @@ def calculateArray(data, timeLimit, sliceSize, thresholdRTC, missingDataThreshol
     return timeArr, RTCArr, PLArr, PLAvg
 
 
-def doPing(ping_dest):
+def doPing(ping_dest, ping_size, ping_timeout, debug):
     """Pings a specific IP address once, and returns the results as a dictionary."""
     ping_parser = pingparsing.PingParsing()
     transmitter = pingparsing.PingTransmitter()
     transmitter.destination = ping_dest
+    transmitter.packet_size = ping_size
     transmitter.count = 1
-    transmitter.timeout = "200ms"
+    transmitter.timeout = str(ping_timeout) + 'ms'
     result = transmitter.ping()
     toReturn = ping_parser.parse(result).as_dict()
+    if debug:
+        logging.debug(toReturn)
     if toReturn["destination"] is None:
         raise ValueError("Could not resolve host " + ping_dest)
 
@@ -65,10 +70,11 @@ def doPing(ping_dest):
     return toReturn
 
 
-def timerPing(app: Flask):
+def recordPing(app: Flask):
     """Does a ping, and stores the results in a SQL table. Additionally, deletes records in SQL table that are older
     than 4 hours."""
-    pingData = doPing(app.config['PING_DESTINATION'])
+    pingData = doPing(app.config['PING_DESTINATION'], app.config['PING_SIZE'], app.config['PING_TIMEOUT'],
+                      app.config['DEBUG'])
     db = sqlite3.connect("db/pings.db")
     con = db.cursor()
     con.execute("""CREATE TABLE IF NOT EXISTS pings (
@@ -100,6 +106,7 @@ def createTable():
 def beginDataCollection(state):
     Path("db/").mkdir(exist_ok=True)
     createTable()
-    sched = BackgroundScheduler(daemon=True)
-    sched.add_job(timerPing, 'cron', second='*', args=[state.app])
-    sched.start()
+    if not state.app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        sched = BackgroundScheduler(daemon=True)
+        sched.add_job(recordPing, 'cron', second='*', args=[state.app])
+        sched.start()
