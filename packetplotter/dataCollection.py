@@ -24,6 +24,8 @@ def calculateArray(data, timeLimit, sliceSize, thresholdRTT, missingDataThreshol
     timeSet, timeArr, RTTArr, PLArr = set(), [], [], []
     totalPackets, packetsReceived = 0, 0
     startingIndex = len(data)
+    if data[-1][0] < timeLimit:
+        raise ValueError('Last Ping Datapoint is from more than 3 hours ago. Is ping service running?')
     for i in range(len(data)):
         if timeLimit < data[i][0]:
             startingIndex = i
