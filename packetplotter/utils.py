@@ -1,5 +1,3 @@
-import numpy as np
-
 def nonZeroMean(arr):
     """Takes the mean of an array not counting None or 0 values."""
     total = 0
@@ -19,8 +17,8 @@ def averageArray(array, sliceSize, zeroThreshold, noneThreshold):
         return array
 
     def averageHelper(i):
-        zeroCount = np.count_nonzero(np.array(array[i: i + sliceSize]) == 0)
-        noneCount = np.count_nonzero(np.array(array[i: i + sliceSize]) == None)
+        zeroCount = array[i: i + sliceSize].count(0)
+        noneCount = array[i: i + sliceSize].count(None)
         if noneCount / sliceSize > noneThreshold:
             return None
         if zeroCount / sliceSize > zeroThreshold:
