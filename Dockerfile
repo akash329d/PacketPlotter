@@ -1,4 +1,4 @@
-FROM tiangolo/uwsgi-nginx-flask:python3.8
+FROM tiangolo/uwsgi-nginx-flask:python3.8-alpine
 ENV STATIC_PATH /app/packetplotter/static
 copy packetplotter /app/packetplotter
 copy uwsgi.ini /app
