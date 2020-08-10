@@ -4,8 +4,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-import os
-import numpy as np
 import pingparsing
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Blueprint, Flask
@@ -25,7 +23,11 @@ def calculateArray(data, timeLimit, sliceSize, thresholdRTT, missingDataThreshol
     Finally, gaps in the data are filled in with None values as well."""
     timeSet, timeArr, RTTArr, PLArr = set(), [], [], []
     totalPackets, packetsReceived = 0, 0
-    startingIndex = np.searchsorted(list(zip(*data))[0], timeLimit, side='right')
+    startingIndex = len(data)
+    for i in range(len(data)):
+        if timeLimit < data[i][0]:
+            startingIndex = i
+            break
     secondsToPad = int(data[startingIndex][0] - timeLimit)
     for ping in data[startingIndex:]:
         totalPackets += 1
