@@ -1,6 +1,6 @@
 FROM tiangolo/uwsgi-nginx-flask:python3.8
-ENV STATIC_PATH /app/pingplotter/static
-copy pingplotter /app/pingplotter
+ENV STATIC_PATH /app/packetplotter/static
+copy packetplotter /app/packetplotter
 copy uwsgi.ini /app
 copy wsgi.py /app
 copy config.py /app
