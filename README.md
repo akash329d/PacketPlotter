@@ -17,7 +17,7 @@ python uwsgi.py
 Both options will use config from config.ini (prioritizes environmental variables)
 ## Docker Usage
 
-Dockerhub: https://hub.docker.com/r/akash329d/PacketPlotter
+Dockerhub: https://hub.docker.com/r/akash329d/PacketPlotter  
 Base Image: https://github.com/tiangolo/uwsgi-nginx-flask-docker  
 (Uses Nginx/uWSGI)
 
