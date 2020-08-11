@@ -12,7 +12,7 @@ uwsgi --http :8080 uwsgi.ini
 ```  
 Or just run directly via Python and use Flask's built in Development Server:
 ```shell
-python uwsgi.py
+python wsgi.py
 ```
 Both options will use config from config.ini (prioritizes environmental variables)
 ## Docker Usage
