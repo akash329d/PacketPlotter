@@ -134,24 +134,26 @@ function updateGraph(chart, timestamp, data){
 }
 
 function updateGraphs() {
-    $.ajax({
-    url: '/latest.json',
-    dataType: 'json',
-    success: function(data) {
-        $('#minuteRSTAVG').text(data['min_RST_AVG'] + 'ms')
-        $('#hourRSTAVG').text(data['hour_RST_AVG'] + 'ms')
-        $('#threeHourRSTAVG').text(data['threeHour_RST_AVG'] + 'ms')
-        $('#minPLAVG').text(data['min_PL_AVG'] + '%')
-        $('#hourPLAVG').text(data['hour_PL_AVG'] + '%')
-        $('#threeHourPLAVG').text(data['threeHour_PL_AVG'] + '%')
-        updateGraph(minRSTChart, data['minuteTimestamp'], data['minuteRTT'])
-        updateGraph(hourRSTChart, data['hourTimestamp'], data['hourRTT'])
-        updateGraph(threeHourRSTChart, data['threeHourTimestamp'], data['threeHourRTT'])
-        updateGraph(minPLChart, data['minuteTimestamp'], data['minutePL'])
-        updateGraph(hourPLChart, data['hourTimestamp'], data['hourPL'])
-        updateGraph(threeHourPLChart, data['threeHourTimestamp'], data['threeHourPL'])
-    }
-    })
+	if(document.hasFocus){
+		$.ajax({
+		url: '/latest.json',
+		dataType: 'json',
+		success: function(data) {
+			$('#minuteRSTAVG').text(data['min_RST_AVG'] + 'ms')
+			$('#hourRSTAVG').text(data['hour_RST_AVG'] + 'ms')
+			$('#threeHourRSTAVG').text(data['threeHour_RST_AVG'] + 'ms')
+			$('#minPLAVG').text(data['min_PL_AVG'] + '%')
+			$('#hourPLAVG').text(data['hour_PL_AVG'] + '%')
+			$('#threeHourPLAVG').text(data['threeHour_PL_AVG'] + '%')
+			updateGraph(minRSTChart, data['minuteTimestamp'], data['minuteRTT'])
+			updateGraph(hourRSTChart, data['hourTimestamp'], data['hourRTT'])
+			updateGraph(threeHourRSTChart, data['threeHourTimestamp'], data['threeHourRTT'])
+			updateGraph(minPLChart, data['minuteTimestamp'], data['minutePL'])
+			updateGraph(hourPLChart, data['hourTimestamp'], data['hourPL'])
+			updateGraph(threeHourPLChart, data['threeHourTimestamp'], data['threeHourPL'])
+		}
+		})
+	}
 }
 
 $(document).ready(function() {
